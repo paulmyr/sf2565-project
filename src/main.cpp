@@ -2,19 +2,13 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include <CLI11.hpp>
+#include "arnoldi.h"
 
 
 void read_input_file(std::string filename) {
     // TODO: everything
 
     return;
-}
-
-
-int arnoldi_iteration(Eigen::MatrixXd A, int num_eigen_values) {
-    // TODO: everything...
-
-    return -1;
 }
 
 
@@ -27,15 +21,19 @@ int main(int argc, char **argv) {
 
     CLI11_PARSE(app, argc, argv);
 
+    Eigen::MatrixXd A(4, 4);
     if (input_file.empty()) {
-        Eigen::MatrixXd m(2, 2);
-        m(0, 0) = 3;
-        m(1, 0) = 2.5;
-        m(0, 1) = -1;
-        m(1, 1) = m(1, 0) + m(0, 1);
-
-        std::cout << "Example Eigen matrix:\n" << m << std::endl;
+        A << 1, 2, 0, 0,
+             2, 3, 1, 0,
+             0, 1, 2, 1,
+             0, 0, 1, 4;
+        std::cout << "Example Eigen matrix:\n" << A << std::endl;
     }
+
+    auto test = arnoldi::solve(A, 3);
+    std::cout << test.krylov_basis << std::endl;
+    std::cout << test.hessenberg << std::endl;
+    std::cout << test.iterations << std::endl;
 
     return 0;
 }
