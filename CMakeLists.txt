@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 # Add Eigen from submodule
 add_subdirectory(lib/eigen)
 add_executable(sf2565_project src/main.cpp
-        src/arnoldi.h)
+        src/arnoldi.h
+        src/main.cpp)
 
 # CLI11 header
 target_include_directories(sf2565_project PRIVATE lib/cli11)
