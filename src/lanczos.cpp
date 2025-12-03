@@ -1,37 +1,67 @@
 #include "lanczos.h"
+#include <vector>
 #include <cassert>
+#include <Eigen/Eigenvalues>  // for Eigen::EigenSolver
 
 namespace lanczos {
     LanczosResult solve(
         const Eigen::MatrixXd& U,
-        const Eigen::VectorXd& k0,
-        const Eigen::VectorXd& q0,
+        const Eigen::VectorXd& k1,  // k_1
+        const Eigen::VectorXd& q1,  // q_1  (stored as column; represents row q_1^T)
         int m
     ) {
-        std::vector<Eigen::VectorXd> k(m + 1);
-        std::vector<Eigen::VectorXd> q(m + 1);
 
+        assert(U.rows() == U.cols());
+        assert(U.rows() == k1.size());
+        assert(U.rows() == q1.size());
+        assert(m >= 1);
+
+        // We store k_1,...,k_m in k[0,...,m-1], and similarly for q.
+        std::vector<Eigen::VectorXd> k(m);
+        std::vector<Eigen::VectorXd> q(m);
+
+        k[0] = k1;
+        q[0] = q1;
+
+        // α_1,...,α_m  → alpha(0,...,m-1)
         Eigen::VectorXd alpha = Eigen::VectorXd::Zero(m);
-        Eigen::VectorXd beta  = Eigen::VectorXd::Zero(m-1);
 
-        k[0] = k0;
-        q[0] = q0;
+        // β_1,...,β_{m-1} → beta(0..m-2)
+        // β_0 is never stored, it is 0 in the recurrence.
+        Eigen::VectorXd beta  = Eigen::VectorXd::Zero(std::max(0, m - 1));
 
-        // First two stages
-        alpha(0) = (q[0].transpose() * U * k[0] / q[0].dot(k[0])).value();
-        k[1] = U * k[0] - alpha[0] * k[0];
-        q[1] = U * q[0] - alpha[0] * q[0];
+        // Computing α_1
+        double num = q[0].dot(U * k[0]);    // q_1*U*k_1
+        double denom = q[0].dot(k[0]);  // q_1*k_1
+        alpha(0) = num / denom;           // α_1
 
-        alpha(1) = (q[1].transpose() * U * k[1] / q[1].dot(k[1])).value();
-        beta(0) = (q[0].transpose() * U * k[1] / q[0].dot(k[0])).value();
+        // β_0 ← 0 (Don't need to store)
 
-        // Iteration for the rest
-        for (int i = 2; i < m; ++i) {
-            k[i] = U * k[i-1] - alpha[i-1] * k[i-1] - beta[i-2] * k[i-2];
-            q[i] = U * q[i-1] - alpha[i-1] * q[i-1] - beta[i-2] * q[i-2];
+        // Iteration
+        for (int i = 2; i <= m; ++i) {
+            int j = i-1;
+            k[j] = U * k[j-1] - alpha(j-1) * k[j-1];
 
-            alpha(i) = (q[i].transpose() * U * k[i] / q[i].dot(k[i])).value();
-            beta(i-1) = (q[i-1].transpose() * U * k[i] / q[i-1].dot(k[i-1])).value();
+            // q_{n−1} U is a row times matrix. Since we store q as columns,
+            // we use U^T * q_{n−1} which corresponds to (q_{n−1} U)^T.
+            q[j] = U.transpose() * q[j-1] - alpha(j-1) * q[j-1];
+
+            // β_{n−2} term is only present for i ≥ 3
+            if (i >= 3) {
+                k[j] -= beta(j-2) * k[j-2];
+                q[j] -= beta(j-2) * q[j-2];
+            }
+
+            double alpha_num = q[j].dot(U * k[j]);
+            double alpha_denom = q[j].dot(k[j]);
+            alpha(j) = alpha_num / alpha_denom;
+
+            int beta_index = (i - 1) - 1;
+            if (beta_index >= 0) {
+                double beta_num = q[j-1].dot(U * k[j]);
+                double beta_denom = q[j-1].dot(k[j-1]);
+                beta(beta_index) = beta_num / beta_denom;
+            }
         }
 
         Eigen::MatrixXd T = Eigen::MatrixXd::Zero(m, m);
