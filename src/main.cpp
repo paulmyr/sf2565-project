@@ -7,12 +7,39 @@
 #include <CLI11.hpp>
 #include "arnoldi.h"
 #include "lanczos.h"
+#include <fstream>
+#include <stdexcept>
 
-
-void read_input_file(std::string filename) {
-    // TODO: everything
-
-    return;
+Eigen::MatrixXd read_input_file(const std::string& filename) {
+    std::ifstream in(filename);
+    if (!in) {
+        throw std::runtime_error("could not open file:" + filename);
+    }
+    /* expecting matrix file of the sort
+     * n (integer)
+     * a_11 a_12 ... a_1n (doubles)
+     * ...
+     * a_n1 a_n2 ... a_nn
+     */
+    int n;
+    in >> n;
+    if (!in || n <= 0) {
+        throw std::runtime_error("invalid matrix size in file: " + filename);
+    }
+    Eigen::MatrixXd A(n, n);
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            double val;
+            in >> val;
+            if (!in) {
+                throw std::runtime_error("failed to read entry (" +
+                                         std::to_string(i) + "," +
+                                         std::to_string(j) + ") from file: " + filename);
+            }
+            A(i, j) = val;
+        }
+    }
+    return A;
 }
 
 int main(int argc, char **argv) {
@@ -27,11 +54,18 @@ int main(int argc, char **argv) {
     Eigen::MatrixXd A(4, 4);
 
     if (input_file.empty()) {
+        A.resize(4, 4);
         A << 1, 2, 0, 0,
              2, 3, 1, 0,
              0, 1, 2, 1,
              0, 0, 1, 4;
         std::cout << "Example Eigen matrix:\n" << A << std::endl;
+    }
+
+    else {
+        A = read_input_file(input_file);
+        std::cout << "Loaded matrix from file '" << input_file << "':\n";
+        std::cout << "Size: " << A.rows() << " x " << A.cols() << "\n";
     }
 
     auto test = arnoldi::solve(A, 3);
@@ -109,7 +143,6 @@ int main(int argc, char **argv) {
         std::cout << "i = " << i
                   << ": |λ_T - λ_U| = " << err << "\n";
     }
-
 
     return 0;
 }
