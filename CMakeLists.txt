@@ -5,9 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Add Eigen from submodule
 add_subdirectory(lib/eigen)
-add_executable(sf2565_project src/main.cpp
+add_compile_options(-Wa,-mbig-obj)
+add_executable(sf2565_project
+        src/main_sparse.cpp
         src/arnoldi.h
-        src/lanczos.cpp
         src/lanczos.h
 )
 
