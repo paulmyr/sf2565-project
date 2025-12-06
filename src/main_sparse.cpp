@@ -78,8 +78,8 @@ int main(int argc, char **argv) {
     // Lanczos
     SpMat U = A;
 
-    Eigen::VectorXd k0 = Eigen::VectorXd::Ones(1000);
-    Eigen::VectorXd q0 = Eigen::VectorXd::Ones(1000);
+    Eigen::VectorXd k0 = Eigen::VectorXd::Ones(10000);
+    Eigen::VectorXd q0 = Eigen::VectorXd::Ones(10000);
 
     int m = 2;
     auto result = lanczos::solve(U, k0, q0, m);
