@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <CLI11.hpp>
 #include "arnoldi.h"
-#include "lanczos.h"
+#include "lanczos_template.h"
 #include <fstream>
 #include <stdexcept>
 
@@ -78,8 +78,8 @@ int main(int argc, char **argv) {
     // Lanczos
     SpMat U = A;
 
-    Eigen::VectorXd k0 = Eigen::VectorXd::Ones(10000);
-    Eigen::VectorXd q0 = Eigen::VectorXd::Ones(10000);
+    Eigen::VectorXd k0 = Eigen::VectorXd::Ones(100);
+    Eigen::VectorXd q0 = Eigen::VectorXd::Ones(100);
 
     int m = 2;
     auto result = lanczos::solve(U, k0, q0, m);
@@ -89,6 +89,14 @@ int main(int argc, char **argv) {
     std::cout << "Eigenvalue approximations:\n"
               << result.eigenvalues.transpose() << "\n\n";
     std::cout << "Iterations: " << result.iterations << "\n";
+
+    // True eigs
+    if (U.rows() <= 100) {
+        Eigen::MatrixXd U_dense = U;
+        Eigen::EigenSolver<Eigen::MatrixXd> full(U_dense);
+        std::cout << "\nTrue eigenvalues of U:\n"
+                  << full.eigenvalues().transpose() << "\n";
+    }
 
     return 0;
 }
