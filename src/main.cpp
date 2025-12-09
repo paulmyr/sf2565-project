@@ -1,138 +1,113 @@
+#include <string>
 #include <iostream>
-#include <fstream>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <Eigen/Eigenvalues>
 #include <vector>
 #include <algorithm>
-#include <chrono>
-#include <stdexcept>
-
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
-#include <Eigen/Sparse>
+#include <CLI11.hpp>
+#include <fstream>
 
 #include "lanczos.h"
+#include "io.h"
 
-using SpMat   = Eigen::SparseMatrix<double>;
-using Triplet = Eigen::Triplet<double>;
 
-enum class MatrixType {
-    DenseRandom,
-    DenseFromFile,
-    SparseFromFile
-};
+void simon_test() {
+    // Test for Lanczos
+    std::cout << "Simon Test for new Lanczos" "\n";
 
-SpMat read_sparse_input_file(const std::string& filename) {
-    std::ifstream in(filename);
-    if (!in) throw std::runtime_error("Could not open file: " + filename);
+    const int n = 4;
+    Eigen::MatrixXd U(n, n);
+    U << 1, 2, 0, 0,
+         2, 3, 1, 0,
+         0, 1, 2, 1,
+         0, 0, 1, 4;
 
-    int rows, cols, nnz;
-    in >> rows >> cols >> nnz;
-    if (!in) throw std::runtime_error("Invalid sparse header");
-
-    std::vector<Triplet> triplets;
-    triplets.reserve(nnz);
-
-    for (int k = 0; k < nnz; ++k) {
-        int r, c;
-        double v;
-        in >> r >> c >> v;
-        if (!in) throw std::runtime_error("Invalid sparse entry");
-        triplets.emplace_back(r, c, v);
-    }
-
-    SpMat A(rows, cols);
-    A.setFromTriplets(triplets.begin(), triplets.end());
-    return A;
-}
-
-Eigen::MatrixXd read_dense_input_file(const std::string& filename) {
-    std::ifstream in(filename);
-    if (!in) throw std::runtime_error("Could not open file: " + filename);
-
-    int n;
-    in >> n;
-    if (!in || n <= 0) throw std::runtime_error("Invalid matrix size");
-
-    Eigen::MatrixXd A(n, n);
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < n; ++j)
-            in >> A(i, j);
-
-    return A;
-}
-
-// ---------------------- Eigenvalue Comparison ----------------------
-
-void compare_results(const Eigen::VectorXd& eigU,
-                     const Eigen::VectorXd& eigT,
-                     int m) {
-    std::vector<double> U(eigU.data(), eigU.data() + eigU.size());
-    std::vector<double> T(eigT.data(), eigT.data() + eigT.size());
-
-    std::sort(U.begin(), U.end());
-    std::sort(T.begin(), T.end());
-
-    std::cout << "\nEigenvalues of U:\n";
-    for (double x : U) std::cout << x << " ";
-    std::cout << "\n\nEigenvalues of T:\n";
-    for (double x : T) std::cout << x << " ";
-    std::cout << "\n\nPointwise absolute errors:\n";
-
-    for (int i = 0; i < m; ++i)
-        std::cout << "i = " << i
-                  << " |λ_T - λ_U| = "
-                  << std::abs(T[i] - U[i]) << "\n";
-}
-
-int main() {
-    constexpr MatrixType matrixType = MatrixType::SparseFromFile;
-
-    const int n = 10;   // matrix size for random case
-    const int m = 8;    // Lanczos subspace size
-    assert(m <= n);
-
-    /*
-    // Dense rando, matrix
-    Eigen::MatrixXd U;
-    std::cout << "Using DENSE RANDOM matrix\n";
-    U = Eigen::MatrixXd::Random(n, n);
-    */
-
-    /*
-    // Dense matrix from file
-    Eigen::MatrixXd U;
-    std::cout << "Using DENSE FROM FILE: " << "densefile.." << "\n";
-    U = read_dense_input_file("densefile");
-    */
-
-    SpMat U = read_sparse_input_file("/Users/signestjernstoft/CLionProjects/sf2565-project/src/sparse_random_10.txt");
-    const int actual_n = U.rows();
-    std::cout << "Dimension of sparse matrix: " << actual_n << '\n';
+    std::cout << "U =\n" << U << "\n\n";
 
     Eigen::VectorXd k1 = Eigen::VectorXd::Random(n);
     Eigen::VectorXd q1 = Eigen::VectorXd::Random(n);
 
-    // Lanczos Runtime
-    auto t1 = std::chrono::high_resolution_clock::now();
+    const int m = 4;
     auto res = lanczos::solve(U, k1, q1, m);
-    auto t2 = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<double> lanczos_time = t2 - t1;
-    std::cout << "\nLanczos time: " << lanczos_time.count() << " s\n";
+    std::cout << "T (tridiagonal reduction) =\n" << res.T << "\n\n";
 
-    // Eigen Runtime
-
-    Eigen::MatrixXd U_dense = Eigen::MatrixXd(U); // only necessary if sparse
-    auto t3 = std::chrono::high_resolution_clock::now();
-    Eigen::EigenSolver<Eigen::MatrixXd> esU(U_dense);
+    // Eigenvalues of U
+    Eigen::EigenSolver<Eigen::MatrixXd> esU(U);
     Eigen::VectorXd lambda_U = esU.eigenvalues().real();
-    auto t4 = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<double> eigen_time = t4 - t3;
-    std::cout << "Eigen full solver time: " << eigen_time.count() << " s\n";
+    // Eigenvalues of T (already computed in res.eigenvalues)
+    Eigen::VectorXd lambda_T = res.eigenvalues;
 
-    // Comparison
-    Eigen::VectorXd lambda_T = res.eigenvalues.head(m);
-    compare_results(lambda_U.head(m), lambda_T, m);
+    std::vector<double> eigU(lambda_U.data(), lambda_U.data() + lambda_U.size());
+    std::vector<double> eigT(lambda_T.data(), lambda_T.data() + lambda_T.size());
+    std::sort(eigU.begin(), eigU.end());
+    std::sort(eigT.begin(), eigT.end());
+
+    std::cout << "Eigenvalues of U (sorted): ";
+    for (double x : eigU) std::cout << x << " ";
+    std::cout << "\nEigenvalues of T (sorted): ";
+    for (double x : eigT) std::cout << x << " ";
+    std::cout << "\n";
+
+    std::cout << "Pointwise absolute errors:\n";
+    for (int i = 0; i < eigU.size(); ++i) {
+        double err = std::abs(eigT[i] - eigU[i]);
+        std::cout << "i = " << i
+                  << ": |λ_T - λ_U| = " << err << "\n";
+    }
+}
+
+void read_and_solve(const std::string& input_file) {
+    // Read Sparse Matrix:
+    SparseMatrixXd U;
+
+    try {
+        U = read_input_file<SparseMatrixXd>(input_file);
+        std::cout << "loaded sparse matrix: " << U.rows() << "x" << U.cols()
+                  << " with " << U.nonZeros() << " non-zeros.\n";
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return;
+    }
+
+    std::cout << U.rows() << std::endl;
+    Eigen::VectorXd k0 = Eigen::VectorXd::Ones(1000);
+    Eigen::VectorXd q0 = Eigen::VectorXd::Ones(1000);
+
+    int m = 2;
+    auto result = lanczos::solve(U, k0, q0, m);
+
+    // Results from lanczos
+    std::cout << "Tridiagonal T:\n" << result.T << "\n\n";
+    std::cout << "Eigenvalue approximations:\n"
+              << result.eigenvalues.transpose() << "\n\n";
+    std::cout << "Iterations: " << result.iterations << "\n";
+
+    // True eigs
+    if (U.rows() <= 100) {
+        Eigen::MatrixXd U_dense = U;
+        Eigen::EigenSolver<Eigen::MatrixXd> full(U_dense);
+        std::cout << "\nTrue eigenvalues of U:\n"
+                  << full.eigenvalues().transpose() << "\n";
+    }
+}
+
+
+int main(int argc, char **argv) {
+    CLI::App app{"Lanczos Solver"};
+
+    std::string input_file;
+    app.add_option("--input-file,-i", input_file,
+        "Input file path. Expects file in TODO SPECIFY FORMAT");
+
+    CLI11_PARSE(app, argc, argv);
+
+    std::cout << "File: " << input_file << std::endl;
+    if (input_file != "") {
+        read_and_solve(input_file);
+    }
 
     return 0;
 }

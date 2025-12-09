@@ -13,10 +13,9 @@ struct LanczosResult {
 };
 
 namespace lanczos {
-
-    template <typename MatrixType>
+    template <typename TMatrix>
     LanczosResult solve(
-        const MatrixType& U,
+        const TMatrix& U,
         const Eigen::VectorXd& k1,  // k_1
         const Eigen::VectorXd& q1,  // q_1  (stored as column; represents row q_1^T)
         int m
@@ -92,7 +91,6 @@ namespace lanczos {
             m
         };
     }
-
 }
 
 #endif
