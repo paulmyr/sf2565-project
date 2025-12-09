@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 # Add Eigen from submodule
 add_subdirectory(lib/eigen)
 add_executable(sf2565_project src/main.cpp
-        src/lanczos.cpp
         src/lanczos.h
 )
 
