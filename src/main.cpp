@@ -11,28 +11,14 @@
 
 #include "lanczos.h"
 
-// ---------------------- Types ----------------------
-
 using SpMat   = Eigen::SparseMatrix<double>;
 using Triplet = Eigen::Triplet<double>;
-
-// ---------------------- MANUAL SELECTION ----------------------
 
 enum class MatrixType {
     DenseRandom,
     DenseFromFile,
     SparseFromFile
 };
-// -----------------------------------------------
-
-// File paths (used only when needed)
-const std::string DENSE_FILE  = "dense.txt";
-const std::string SPARSE_FILE = "sparse.txt";
-
-// Matrix parameters
-
-
-// ---------------------- File Readers ----------------------
 
 SpMat read_sparse_input_file(const std::string& filename) {
     std::ifstream in(filename);
@@ -97,36 +83,35 @@ void compare_results(const Eigen::VectorXd& eigU,
                   << std::abs(T[i] - U[i]) << "\n";
 }
 
-// ---------------------- Main ----------------------
-
 int main() {
     constexpr MatrixType matrixType = MatrixType::SparseFromFile;
 
-    const int n = 1000;   // matrix size for random case
-    const int m = 100;    // Lanczos subspace size
+    const int n = 10;   // matrix size for random case
+    const int m = 8;    // Lanczos subspace size
     assert(m <= n);
 
+    /*
+    // Dense rando, matrix
     Eigen::MatrixXd U;
+    std::cout << "Using DENSE RANDOM matrix\n";
+    U = Eigen::MatrixXd::Random(n, n);
+    */
 
-    if constexpr (matrixType == MatrixType::DenseRandom) {
-        std::cout << "Using DENSE RANDOM matrix\n";
-        U = Eigen::MatrixXd::Random(n, n);
-    }
+    /*
+    // Dense matrix from file
+    Eigen::MatrixXd U;
+    std::cout << "Using DENSE FROM FILE: " << "densefile.." << "\n";
+    U = read_dense_input_file("densefile");
+    */
 
-    else if constexpr (matrixType == MatrixType::DenseFromFile) {
-        std::cout << "Using DENSE FROM FILE: " << DENSE_FILE << "\n";
-        U = read_dense_input_file(DENSE_FILE);
-    }
+    SpMat U = read_sparse_input_file("/Users/signestjernstoft/CLionProjects/sf2565-project/src/sparse_random_10.txt");
+    const int actual_n = U.rows();
+    std::cout << "Dimension of sparse matrix: " << actual_n << '\n';
 
-    else if constexpr (matrixType == MatrixType::SparseFromFile) {
-        std::cout << "Using SPARSE FROM FILE: " << "sparse_random_1000.txt" << "\n";
-        SpMat U = read_sparse_input_file("/Users/signestjernstoft/CLionProjects/sf2565-project/src/sparse_random_1000.txt");
-    }
     Eigen::VectorXd k1 = Eigen::VectorXd::Random(n);
     Eigen::VectorXd q1 = Eigen::VectorXd::Random(n);
 
     // Lanczos Runtime
-
     auto t1 = std::chrono::high_resolution_clock::now();
     auto res = lanczos::solve(U, k1, q1, m);
     auto t2 = std::chrono::high_resolution_clock::now();
@@ -136,8 +121,9 @@ int main() {
 
     // Eigen Runtime
 
+    Eigen::MatrixXd U_dense = Eigen::MatrixXd(U); // only necessary if sparse
     auto t3 = std::chrono::high_resolution_clock::now();
-    Eigen::EigenSolver<Eigen::MatrixXd> esU(U);
+    Eigen::EigenSolver<Eigen::MatrixXd> esU(U_dense);
     Eigen::VectorXd lambda_U = esU.eigenvalues().real();
     auto t4 = std::chrono::high_resolution_clock::now();
 
@@ -145,7 +131,6 @@ int main() {
     std::cout << "Eigen full solver time: " << eigen_time.count() << " s\n";
 
     // Comparison
-
     Eigen::VectorXd lambda_T = res.eigenvalues.head(m);
     compare_results(lambda_U.head(m), lambda_T, m);
 
