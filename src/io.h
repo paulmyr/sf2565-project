@@ -8,7 +8,6 @@
 #include <string>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include <Eigen/Eigenvalues>
 #include <vector>
 #include <fstream>
 #include <stdexcept>
@@ -81,7 +80,6 @@ SparseMatrixXd read_input_file<SparseMatrixXd>(const std::string& filename) {
     SparseMatrixXd A(rows, cols);
     A.setFromTriplets(coefficients.begin(), coefficients.end());
 
-    std::cout << A.rows() << std::endl;
     return A;
 }
 

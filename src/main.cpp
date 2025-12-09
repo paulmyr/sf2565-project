@@ -59,7 +59,7 @@ void simon_test() {
     }
 }
 
-void read_and_solve(const std::string& input_file) {
+void read_and_solve(const std::string& input_file, const int m = 8) {
     // Read Sparse Matrix:
     SparseMatrixXd U;
 
@@ -72,12 +72,16 @@ void read_and_solve(const std::string& input_file) {
         return;
     }
 
-    std::cout << U.rows() << std::endl;
-    Eigen::VectorXd k0 = Eigen::VectorXd::Ones(1000);
-    Eigen::VectorXd q0 = Eigen::VectorXd::Ones(1000);
+    Eigen::VectorXd k0 = Eigen::VectorXd::Ones(U.rows());
+    Eigen::VectorXd q0 = Eigen::VectorXd::Ones(U.rows());
 
-    int m = 2;
+    // Lanczos Runtime
+    auto t_lanczos_start = std::chrono::high_resolution_clock::now();
     auto result = lanczos::solve(U, k0, q0, m);
+    auto t_lanczos_end = std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<double> lanczos_time = t_lanczos_end - t_lanczos_start;
+    std::cout << "\nLanczos time: " << lanczos_time.count() << " s\n";
 
     // Results from lanczos
     std::cout << "Tridiagonal T:\n" << result.T << "\n\n";
@@ -100,7 +104,11 @@ int main(int argc, char **argv) {
 
     std::string input_file;
     app.add_option("--input-file,-i", input_file,
-        "Input file path. Expects file in TODO SPECIFY FORMAT");
+        "Input file path. Expects file in coo? file format");
+
+    int num_eigenvalues;
+    app.add_option("--num-eigenvalues, -n", num_eigenvalues,
+        "Sets the m variable, default: 2");
 
     CLI11_PARSE(app, argc, argv);
 
