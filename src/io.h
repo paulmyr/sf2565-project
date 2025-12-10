@@ -1,7 +1,3 @@
-//
-// Created by Paul Mayer on 09.12.25.
-//
-
 #ifndef SF2565_PROJECT_IO_H
 #define SF2565_PROJECT_IO_H
 
