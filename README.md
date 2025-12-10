@@ -20,13 +20,14 @@ make
 ```bash
 ./sf2565_project --help
 ./sf2565_project --input-file <path-to-file>
+./sf2565_project --input-file <path-to-file> --num-eigenvalues 10
 ```
 
 ## Setup CLion
 1. Clone the project to your machine (with submodules as shown above)
 2. Start CLion → New Project → Navigate to folder → Open → Project from existing sources
 3. CLion should automatically detect CMakeLists.txt and configure the project
-4. If you encounter indexing issues, go to: Fiel → Invalidate Caches → Invalidate and REstart
+4. If you encounter indexing issues, go to: File → Invalidate Caches → Invalidate and REstart
 
 ## Dependencies
 

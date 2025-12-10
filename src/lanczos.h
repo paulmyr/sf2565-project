@@ -18,7 +18,7 @@ namespace lanczos {
         const TMatrix& U,
         const Eigen::VectorXd& k1,  // k_1
         const Eigen::VectorXd& q1,  // q_1  (stored as column; represents row q_1^T)
-        int m
+        const int m
     ) {
 
         assert(U.rows() == U.cols());
@@ -41,9 +41,10 @@ namespace lanczos {
         Eigen::VectorXd beta  = Eigen::VectorXd::Zero(std::max(0, m - 1));
 
         // Computing α_1
-        double num = q[0].dot(U * k[0]);    // q_1*U*k_1
-        double denom = q[0].dot(k[0]);  // q_1*k_1
-        alpha(0) = num / denom;           // α_1
+        const double num = q[0].dot(U * k[0]);    // q_1*U*k_1
+        const double denom = q[0].dot(k[0]);           // q_1*k_1
+        assert(std::abs(denom) > 0.0000001);     // sanity check for debugging
+        alpha(0) = num / denom;             // α_1
 
         // β_0 ← 0 (Don't need to store)
 
@@ -82,8 +83,8 @@ namespace lanczos {
             if (i < m - 1) T(i, i + 1) = beta(i);
         }
 
-        Eigen::EigenSolver<Eigen::MatrixXd> solver(T);
-        Eigen::VectorXd eigs = solver.eigenvalues().real();
+        const Eigen::EigenSolver<Eigen::MatrixXd> solver(T);
+        const Eigen::VectorXd eigs = solver.eigenvalues().real();
 
         return LanczosResult{
             T,
