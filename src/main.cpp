@@ -9,10 +9,7 @@
 #include "io.h"
 #include "lanczos.h"
 
-void simon_test() {
-  // Test for Lanczos
-  std::cout << "Simon Test for new Lanczos" << std::endl;
-
+void eigError() {
   constexpr int n = 4;
   Eigen::MatrixXd U(n, n);
   U << 1, 2, 0, 0, 2, 3, 1, 0, 0, 1, 2, 1, 0, 0, 1, 4;
